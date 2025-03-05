@@ -5,17 +5,27 @@ import 'package:flutter/foundation.dart'; // For debugPrint
 
 class StorageHelper {
   
+  /// ✅ Request storage permission based on platform
+  static Future<bool> requestStoragePermission() async {
+    if (Platform.isAndroid) {
+      var status = await Permission.storage.request();
+      return status.isGranted;
+    } else {
+      var status = await Permission.photos.request();
+      return status.isGranted;
+    }
+  }
+
   /// ✅ Copies file to `TiktokDownloaderContent` inside Documents directory
   static Future<File?> copyFileToAppDir(String filePath) async {
-    // ✅ Request permission first (use photos for iOS)
-    var status = await Permission.photos.request();
-    if (!status.isGranted) {
-        debugPrint("❌ Photo Library permission denied");
-        return null;
+    // ✅ Request permission first
+    if (!await requestStoragePermission()) {
+      debugPrint("❌ Permission denied");
+      return null;
     }
 
     final appDir = await getApplicationDocumentsDirectory();
-    final customDir = Directory('${appDir.path}/TiktokDownloaderContent');
+    final customDir = Directory('${appDir.path}${Platform.pathSeparator}TiktokDownloaderContent');
 
     // ✅ Create the directory if it doesn't exist
     if (!await customDir.exists()) {
@@ -23,22 +33,22 @@ class StorageHelper {
       debugPrint("📁 Created directory: ${customDir.path}");
     }
 
-    final newFilePath = '${customDir.path}/${filePath.split('/').last}';
+    final newFilePath = '${customDir.path}${Platform.pathSeparator}${filePath.split(Platform.pathSeparator).last}';
 
     // ✅ Check if file already exists
     if (await File(newFilePath).exists()) {
-        debugPrint("⚠️ File already exists at: $newFilePath");
-        return File(newFilePath);
+      debugPrint("⚠️ File already exists at: $newFilePath");
+      return File(newFilePath);
     }
 
     // ✅ Copy the file to the new directory with error handling
     try {
-        File copiedFile = await File(filePath).copy(newFilePath);
-        debugPrint("✅ File successfully copied to: $newFilePath");
-        return copiedFile;
+      File copiedFile = await File(filePath).copy(newFilePath);
+      debugPrint("✅ File successfully copied to: $newFilePath");
+      return copiedFile;
     } catch (e) {
-        debugPrint("❌ Error copying file: $e");
-        return null;
+      debugPrint("❌ Error copying file: $e");
+      return null;
     }
   }
 
