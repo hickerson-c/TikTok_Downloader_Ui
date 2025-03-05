@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 
 class DownloadsScreen extends StatefulWidget {
-  const DownloadsScreen({super.key});
+  final String saveDirectory; // ✅ Accepts user-selected folder
+
+  const DownloadsScreen({super.key, required this.saveDirectory});
 
   @override
   DownloadsScreenState createState() => DownloadsScreenState();
@@ -19,13 +20,13 @@ class DownloadsScreenState extends State<DownloadsScreen> {
     loadDownloads();
   }
 
-  /// ✅ Loads all downloaded videos
+  /// ✅ Loads all downloaded videos from the user-selected folder
   Future<void> loadDownloads() async {
-    final directory = await getApplicationDocumentsDirectory();
-    Directory saveDirectory = Directory("${directory.path}/TiktokDownloaderContent");
+    Directory saveDirectory = Directory(widget.saveDirectory); // ✅ Use correct folder
 
     if (!await saveDirectory.exists()) {
-      await saveDirectory.create(recursive: true);
+      debugPrint("⚠️ Folder does not exist: ${widget.saveDirectory}");
+      return;
     }
 
     List<File> files = saveDirectory
@@ -44,9 +45,9 @@ class DownloadsScreenState extends State<DownloadsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Downloaded Videos")),
+      appBar: AppBar(title: const Text("Downloaded Videos")),
       body: downloadedVideos.isEmpty
-          ? Center(child: Text("No downloads found"))
+          ? const Center(child: Text("No downloads found"))
           : ListView.builder(
               itemCount: downloadedVideos.length,
               itemBuilder: (context, index) {
@@ -65,6 +66,7 @@ class DownloadsScreenState extends State<DownloadsScreen> {
   }
 }
 
+/// ✅ Video Player for Downloaded Videos
 class VideoPlayerScreen extends StatefulWidget {
   final File file;
   const VideoPlayerScreen({super.key, required this.file});
@@ -75,6 +77,7 @@ class VideoPlayerScreen extends StatefulWidget {
 
 class VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late VideoPlayerController _controller;
+  bool isPlaying = false; // ✅ Track play state
 
   @override
   void initState() {
@@ -82,7 +85,6 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _controller = VideoPlayerController.file(widget.file)
       ..initialize().then((_) {
         setState(() {});
-        _controller.play();
       });
   }
 
@@ -95,22 +97,23 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Playing Video")),
+      appBar: AppBar(title: const Text("Playing Video")),
       body: Center(
         child: _controller.value.isInitialized
             ? AspectRatio(
                 aspectRatio: _controller.value.aspectRatio,
                 child: VideoPlayer(_controller),
               )
-            : CircularProgressIndicator(),
+            : const CircularProgressIndicator(),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           setState(() {
-            _controller.value.isPlaying ? _controller.pause() : _controller.play();
+            isPlaying = !isPlaying;
+            isPlaying ? _controller.play() : _controller.pause();
           });
         },
-        child: Icon(_controller.value.isPlaying ? Icons.pause : Icons.play_arrow),
+        child: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
       ),
     );
   }

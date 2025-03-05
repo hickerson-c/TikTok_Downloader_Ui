@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'video_list_screen.dart'; // ✅ Import VideoListScreen
@@ -13,10 +12,40 @@ class FilePickerScreen extends StatefulWidget {
 
 class FilePickerScreenState extends State<FilePickerScreen> {
   String? filePath;
+  String? selectedDirectory;
+
+  /// ✅ Shortens the path to show only the last two folder names
+  String getShortenedPath(String fullPath) {
+    List<String> parts = fullPath.split(Platform.pathSeparator);
+    if (parts.length >= 2) {
+      return "${parts[parts.length - 2]}/${parts.last}"; // Show last 2 folders
+    }
+    return fullPath; // Fallback if path is too short
+  }
+
+  /// Allows user to select a directory to save files
+  Future<void> pickSaveFolder() async {
+    String? directoryPath = await FilePicker.platform.getDirectoryPath();
+
+    if (directoryPath != null) {
+      setState(() {
+        selectedDirectory = directoryPath;
+      });
+
+      debugPrint("✅ Selected save folder: $selectedDirectory");
+    }
+  }
 
   /// Handles file selection and navigation
   Future<void> pickTextFile() async {
     try {
+      if (selectedDirectory == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("⚠️ Please select a save folder first.")),
+        );
+        return;
+      }
+
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['txt'],
@@ -24,15 +53,12 @@ class FilePickerScreenState extends State<FilePickerScreen> {
 
       if (result != null && result.files.single.path != null) {
         String originalPath = result.files.single.path!;
-        final appDir = await getApplicationDocumentsDirectory();
+        String newPath = '$selectedDirectory${Platform.pathSeparator}${originalPath.split(Platform.pathSeparator).last}';
 
-        // ✅ Ensure Windows-compatible path
-        String newPath = '${appDir.path}${Platform.pathSeparator}${originalPath.split(Platform.pathSeparator).last}';
-        
-        // ✅ Fix invalid path errors by normalizing the format
+        // ✅ Copy file to the user-selected directory
         File copiedFile = await File(originalPath).copy(newPath);
 
-        if (!mounted) return; // ✅ Ensures the widget is still in the tree
+        if (!mounted) return; // ✅ Ensure widget is still active
 
         setState(() {
           filePath = copiedFile.path;
@@ -40,12 +66,15 @@ class FilePickerScreenState extends State<FilePickerScreen> {
 
         debugPrint("✅ Copied file to: $filePath");
 
-        // ✅ Only navigate if widget is still mounted
+        // ✅ Navigate only if the widget is still mounted
         if (mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => VideoListScreen(filePath: filePath!),
+              builder: (context) => VideoListScreen(
+                filePath: filePath!,
+                saveDirectory: selectedDirectory!, // ✅ Pass selected folder path
+              ),
             ),
           );
         }
@@ -58,24 +87,39 @@ class FilePickerScreenState extends State<FilePickerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Select posts.txt")),
+      appBar: AppBar(title: const Text("Select File & Save Location")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              "Please extract your TikTok data first, then select the 'posts.txt' file from the extracted folder.",
+              "Step 1: Select a folder where the extracted file should be saved.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16),
             ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: pickSaveFolder,
+              child: const Text("Choose Save Folder"),
+            ),
+            if (selectedDirectory != null) ...[
+              const SizedBox(height: 10),
+              Text("Save Location: ${getShortenedPath(selectedDirectory!)}"), // ✅ Shortened Path
+            ],
             const SizedBox(height: 20),
+            const Text(
+              "Step 2: Select the 'posts.txt' file from the extracted TikTok data.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: pickTextFile,
               child: const Text("Browse for posts.txt"),
             ),
             if (filePath != null) ...[
               const SizedBox(height: 20),
-              Text("Selected file: $filePath"),
+              Text("Selected file: ${getShortenedPath(filePath!)}"), // ✅ Shortened Path
             ],
           ],
         ),

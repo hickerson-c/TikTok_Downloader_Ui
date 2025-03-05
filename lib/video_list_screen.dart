@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'storage_helper.dart';
 import 'downloads_screen.dart';
 
 class VideoListScreen extends StatefulWidget {
   final String filePath;
-  const VideoListScreen({super.key, required this.filePath});
+  final String saveDirectory; // ✅ User-selected save folder
+
+  const VideoListScreen({super.key, required this.filePath, required this.saveDirectory});
 
   @override
   VideoListScreenState createState() => VideoListScreenState();
@@ -18,6 +18,8 @@ class VideoListScreenState extends State<VideoListScreen> {
   bool selectAll = false;
   bool isDownloading = false;
   double progress = 0.0;
+  int skippedCount = 0; // ✅ Store skipped videos count
+  int totalVideos = 0; // ✅ Store total valid videos count
 
   @override
   void initState() {
@@ -25,13 +27,57 @@ class VideoListScreenState extends State<VideoListScreen> {
     loadVideos();
   }
 
-  /// ✅ Loads videos and extracts only the date (YYYY-MM-DD)
+  /// ✅ Extracts video URLs and dates from the Posts.txt file
+  Future<List<Map<String, dynamic>>> extractData(String filePath) async {
+    List<Map<String, dynamic>> extractedData = [];
+    int skipped = 0;
+
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        debugPrint("❌ Error: File does not exist at $filePath");
+        return [];
+      }
+
+      List<String> lines = await file.readAsLines();
+      String? currentDate;
+
+      for (String line in lines) {
+        if (line.startsWith("Date:")) {
+          currentDate = line.split(": ")[1];
+        } else if (line.startsWith("Link:") && currentDate != null) {
+          String videoUrl = line.replaceFirst("Link: ", "").trim();
+
+          if (Uri.tryParse(videoUrl)?.hasAbsolutePath ?? false) {
+            extractedData.add({"date": currentDate, "link": videoUrl});
+          } else {
+            skipped++; // ✅ Count invalid URLs
+          }
+        }
+      }
+
+      debugPrint("📊 Total Videos Found: ${extractedData.length} | Skipped Invalid: $skipped"); // ✅ Log summary
+
+      if (mounted) {
+        setState(() {
+          totalVideos = extractedData.length; // ✅ Update total video count
+          skippedCount = skipped; // ✅ Update skipped count
+        });
+      }
+    } catch (e) {
+      debugPrint("❌ Error extracting data: $e");
+    }
+
+    return extractedData;
+  }
+
+  /// ✅ Loads videos from extracted data
   Future<void> loadVideos() async {
-    List<Map<String, dynamic>> extractedData = await StorageHelper.extractData(widget.filePath);
+    List<Map<String, dynamic>> extractedData = await extractData(widget.filePath);
     if (mounted) {
       setState(() {
         videoList = extractedData.map((video) {
-          return {"date": video['date'].split(" ")[0], "link": video['link'], "selected": false};
+          return {"date": video['date'], "link": video['link'], "selected": false};
         }).toList();
       });
     }
@@ -47,14 +93,14 @@ class VideoListScreenState extends State<VideoListScreen> {
     });
   }
 
-  /// ✅ Downloads selected videos to the App Folder
+  /// ✅ Downloads selected videos
   Future<void> downloadSelectedVideos() async {
     List<Map<String, dynamic>> selectedVideos = videoList.where((video) => video["selected"]).toList();
 
     if (selectedVideos.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("No videos selected!")),
+          const SnackBar(content: Text("No videos selected!")),
         );
       }
       return;
@@ -65,9 +111,7 @@ class VideoListScreenState extends State<VideoListScreen> {
       progress = 0.0;
     });
 
-    final directory = await getApplicationDocumentsDirectory();
-    Directory saveDirectory = Directory("${directory.path}/TiktokDownloaderContent");
-
+    Directory saveDirectory = Directory(widget.saveDirectory);
     if (!await saveDirectory.exists()) {
       await saveDirectory.create(recursive: true);
     }
@@ -88,7 +132,7 @@ class VideoListScreenState extends State<VideoListScreen> {
           ? "${baseFileName}_${dateCount[baseFileName]}.mp4"
           : "$baseFileName.mp4";
 
-      String filePath = "${saveDirectory.path}/$fileName";
+      String filePath = "${saveDirectory.path}${Platform.pathSeparator}$fileName";
 
       try {
         var response = await http.get(Uri.parse(videoUrl));
@@ -112,9 +156,8 @@ class VideoListScreenState extends State<VideoListScreen> {
     }
 
     if (mounted) {
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text("✅ Download Complete! Files saved to App Folder.")),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("✅ Download Complete! Files saved to ${widget.saveDirectory}")),
       );
 
       setState(() {
@@ -126,37 +169,54 @@ class VideoListScreenState extends State<VideoListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Select Videos to Download")),
+      appBar: AppBar(title: const Text("Select Videos to Download")),
       body: Column(
         children: [
+          // ✅ Show video summary (total found & skipped)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              "Total Videos: $totalVideos | Skipped: $skippedCount",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+
+          // ✅ "Download Selected Videos" button moved to the TOP
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: videoList.any((video) => video["selected"]) ? downloadSelectedVideos : null,
+              child: const Text("Download Selected Videos"),
+            ),
+          ),
+
           // ✅ "View Downloads" Button
           Padding(
-            padding: EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => DownloadsScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DownloadsScreen(saveDirectory: widget.saveDirectory), // ✅ Pass correct folder
+                  ),
+                );
               },
-              child: Text("View Downloads"),
+              child: const Text("View Downloads"),
             ),
           ),
-          // ✅ Select All / Deselect All Button
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: toggleSelectAll,
-              child: Text(selectAll ? "Deselect All" : "Select All"),
-            ),
-          ),
-          // ✅ Video List (Now Showing Only Dates)
+
           Expanded(
             child: videoList.isEmpty
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : ListView.builder(
                     itemCount: videoList.length,
                     itemBuilder: (context, index) {
                       var video = videoList[index];
+
                       return CheckboxListTile(
-                        title: Text(video['date']),
+                        title: Text(video['date']), // ✅ Show only date
+                        subtitle: const Text("TikTok Video"), // ✅ Hide long URL
                         value: video["selected"],
                         onChanged: (bool? value) {
                           setState(() {
@@ -167,24 +227,13 @@ class VideoListScreenState extends State<VideoListScreen> {
                     },
                   ),
           ),
-          // ✅ Progress Bar (Visible only while downloading)
-          if (isDownloading)
-            Padding(
-              padding: EdgeInsets.all(10.0),
-              child: Column(
-                children: [
-                  Text("Downloading... ${(progress * 100).toStringAsFixed(0)}%"),
-                  SizedBox(height: 10),
-                  LinearProgressIndicator(value: progress),
-                ],
-              ),
-            ),
-          // ✅ Download Button
+
+          // ✅ "Select All / Deselect All" button moved to the BOTTOM
           Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: videoList.any((video) => video["selected"]) ? downloadSelectedVideos : null,
-              child: Text("Download Selected Videos"),
+              onPressed: toggleSelectAll,
+              child: Text(selectAll ? "Deselect All" : "Select All"),
             ),
           ),
         ],
