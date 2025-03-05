@@ -3,6 +3,15 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'downloads_screen.dart';
 
+// Function to generate a UTC-based filename
+String getUtcFilename() {
+  DateTime now = DateTime.now().toUtc();
+  return "${now.year}${_twoDigits(now.month)}${_twoDigits(now.day)}_"
+         "${_twoDigits(now.hour)}${_twoDigits(now.minute)}${_twoDigits(now.second)}.mp4";
+}
+
+String _twoDigits(int n) => n.toString().padLeft(2, '0');
+
 class VideoListScreen extends StatefulWidget {
   final String filePath;
   final String saveDirectory; // ✅ User-selected save folder
@@ -116,22 +125,9 @@ class VideoListScreenState extends State<VideoListScreen> {
       await saveDirectory.create(recursive: true);
     }
 
-    Map<String, int> dateCount = {};
-
     for (int i = 0; i < selectedVideos.length; i++) {
       String videoUrl = selectedVideos[i]["link"];
-      String baseFileName = selectedVideos[i]["date"];
-
-      if (!dateCount.containsKey(baseFileName)) {
-        dateCount[baseFileName] = 1;
-      } else {
-        dateCount[baseFileName] = dateCount[baseFileName]! + 1;
-      }
-
-      String fileName = (dateCount[baseFileName]! > 1)
-          ? "${baseFileName}_${dateCount[baseFileName]}.mp4"
-          : "$baseFileName.mp4";
-
+      String fileName = getUtcFilename(); // ✅ Generate UTC-based filename
       String filePath = "${saveDirectory.path}${Platform.pathSeparator}$fileName";
 
       try {
