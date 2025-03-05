@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+    <key>NSDocumentsDirectoryUsageDescription</key>
+    <string>This app needs access to documents to process files.</string>
+    <key>NSDownloadsDirectoryUsageDescription</key>
+    <string>This app needs access to the Downloads folder.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app saves videos to your gallery.</string>
+
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Tiktok Downloader Ui</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>Chad-Ai.tiktokDownloaderUi</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>tiktok_downloader_ui</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(FLUTTER_BUILD_NAME)</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleVersion</key>
+    <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <!-- ✅ Added explicit .txt file type support -->
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>public.plain-text</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.text</string>
+            </array>
+            <key>UTTypeDescription</key>
+            <string>Plain Text</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>txt</string>
+                </array>
+                <key>public.mime-type</key>
+                <array>
+                    <string>text/plain</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+
+    <!-- ✅ File Access & Sharing Permissions -->
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>NSDocumentsDirectoryUsageDescription</key>
+    <string>App requires access to the documents directory.</string>
+
+    <!-- ✅ Media Access (If Needed) -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app requires access to the photo library to save TikTok videos.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app requires access to the microphone for audio processing.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>This app requires access to the camera to capture video.</string>
+
+    <!-- ✅ iCloud Support (Optional) -->
+    <key>NSUbiquitousContainers</key>
+    <dict>
+        <key>com.apple.document</key>
+        <dict>
+            <key>NSUbiquitousContainerIsDocumentScopePublic</key>
+            <true/>
+            <key>NSUbiquitousContainerName</key>
+            <string>TikTok Downloader</string>
+            <key>NSUbiquitousContainerSupportedFolderLevels</key>
+            <string>Any</string>
+        </dict>
+    </dict>
+
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+</dict>
+</plist>
